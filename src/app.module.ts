@@ -11,6 +11,7 @@ import { CommonModule } from './common/common.module';
 import { FilesModule } from './files/files.module';
 import { AuthModule } from './auth/auth.module';
 import { EnvConfiguration } from './config/env.config';
+import configTypeOrm from './config/typeorm.config';
 
 @Module({
   imports: [
@@ -32,13 +33,7 @@ import { EnvConfiguration } from './config/env.config';
       }),
     }),
     TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: process.env.DB_HOST,
-      port: +process.env.DB_PORT,
-      database: process.env.DB_NAME,
-      username: process.env.DB_USERNAME,
-      password: process.env.DB_PASSWORD,
-      autoLoadEntities: true,
+      ...configTypeOrm,
       synchronize: EnvConfiguration().environment === 'dev',
       logging: EnvConfiguration().environment === 'dev',
     }),

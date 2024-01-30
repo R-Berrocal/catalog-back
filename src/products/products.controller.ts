@@ -8,7 +8,10 @@ import {
   Delete,
   ParseUUIDPipe,
   Query,
+  UseInterceptors,
+  UploadedFiles,
 } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import { Product } from './entities/product.entity';
@@ -20,6 +23,7 @@ import { PaginationDto } from './../common/dtos/pagination.dto';
 import { Auth, GetUser } from '../auth/decorators';
 import { User } from '../auth/entities/user.entity';
 import { ValidRoles } from '../auth/interfaces';
+import { fileFilter } from 'src/files/helpers';
 
 @ApiTags('Products')
 @Controller('products')
@@ -28,6 +32,7 @@ export class ProductsController {
 
   @Post()
   @Auth()
+  @UseInterceptors(FilesInterceptor('images', 5, { fileFilter }))
   @ApiResponse({
     status: 201,
     description: 'Product was created',
@@ -35,13 +40,17 @@ export class ProductsController {
   })
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 403, description: 'Forbidden. Token related.' })
-  create(@Body() createProductDto: CreateProductDto, @GetUser() user: User) {
+  create(
+    @Body() createProductDto: CreateProductDto,
+    @GetUser() user: User,
+    @UploadedFiles() images: Array<Express.Multer.File>,
+  ) {
+    createProductDto.images = images;
     return this.productsService.create(createProductDto, user);
   }
 
   @Get()
   findAll(@Query() paginationDto: PaginationDto) {
-    // console.log(paginationDto)
     return this.productsService.findAll(paginationDto);
   }
 
@@ -51,7 +60,7 @@ export class ProductsController {
   }
 
   @Patch(':id')
-  @Auth(ValidRoles.admin)
+  @Auth(ValidRoles.ADMIN)
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateProductDto: UpdateProductDto,
@@ -61,7 +70,7 @@ export class ProductsController {
   }
 
   @Delete(':id')
-  @Auth(ValidRoles.admin)
+  @Auth(ValidRoles.ADMIN)
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.productsService.remove(id);
   }

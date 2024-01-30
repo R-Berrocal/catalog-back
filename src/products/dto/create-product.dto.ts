@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   IsArray,
   IsIn,
@@ -21,6 +22,7 @@ export class CreateProductDto {
   title: string;
 
   @ApiProperty()
+  @Type(() => Number)
   @IsNumber()
   @IsPositive()
   @IsOptional()
@@ -37,15 +39,11 @@ export class CreateProductDto {
   slug?: string;
 
   @ApiProperty()
+  @Type(() => Number)
   @IsInt()
   @IsPositive()
   @IsOptional()
   stock?: number;
-
-  @ApiProperty()
-  @IsString({ each: true })
-  @IsArray()
-  sizes: string[];
 
   @ApiProperty()
   @IsIn(['men', 'women', 'kid', 'unisex'])
@@ -58,8 +56,7 @@ export class CreateProductDto {
   tags: string[];
 
   @ApiProperty()
-  @IsString({ each: true })
   @IsArray()
   @IsOptional()
-  images?: string[];
+  images?: Array<Express.Multer.File>;
 }

@@ -14,7 +14,7 @@ async function bootstrap() {
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
-    })
+    }),
   );
 
   const config = new DocumentBuilder()
@@ -24,7 +24,6 @@ async function bootstrap() {
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
-
 
   await app.listen(process.env.PORT);
   logger.log(`🚀 Server ready at: ${await app.getUrl()}`);

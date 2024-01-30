@@ -15,6 +15,7 @@ import { PaginationDto } from 'src/common/dtos/pagination.dto';
 import { validate as isUUID } from 'uuid';
 import { ProductImage, Product } from './entities';
 import { User } from '../auth/entities/user.entity';
+import { FilesService } from 'src/files/files.service';
 
 @Injectable()
 export class ProductsService {
@@ -28,6 +29,8 @@ export class ProductsService {
     private readonly productImageRepository: Repository<ProductImage>,
 
     private readonly dataSource: DataSource,
+
+    private readonly filesService: FilesService,
   ) {}
 
   async create(createProductDto: CreateProductDto, user: User) {
@@ -36,15 +39,23 @@ export class ProductsService {
 
       const product = this.productRepository.create({
         ...productDetails,
-        images: images.map((image) =>
-          this.productImageRepository.create({ url: image }),
-        ),
         user,
       });
 
-      await this.productRepository.save(product);
+      const { secureUrls } = await this.filesService.uploadImages(
+        `products/${product.title
+          .toLowerCase()
+          .replaceAll(' ', '_')
+          .replaceAll("'", '')}`,
+        images,
+      );
 
-      return { ...product, images };
+      (product.images = secureUrls.map((secureUrl) =>
+        this.productImageRepository.create({ url: secureUrl }),
+      )),
+        await this.productRepository.save(product);
+
+      return { ...product, images: secureUrls };
     } catch (error) {
       this.handleDBExceptions(error);
     }
@@ -111,12 +122,11 @@ export class ProductsService {
       if (images) {
         await queryRunner.manager.delete(ProductImage, { product: { id } });
 
-        product.images = images.map((image) =>
-          this.productImageRepository.create({ url: image }),
-        );
+        // product.images = images.map((image) =>
+        //   this.productImageRepository.create({ url: image }),
+        // );
       }
 
-      // await this.productRepository.save( product );
       product.user = user;
 
       await queryRunner.manager.save(product);
@@ -141,7 +151,6 @@ export class ProductsService {
     if (error.code === '23505') throw new BadRequestException(error.detail);
 
     this.logger.error(error);
-    // console.log(error)
     throw new InternalServerErrorException(
       'Unexpected error, check server logs',
     );

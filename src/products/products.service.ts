@@ -16,11 +16,12 @@ import { validate as isUUID } from 'uuid';
 import { ProductImage, Product } from './entities';
 import { User } from '../auth/entities/user.entity';
 import { FilesService } from 'src/files/files.service';
+import { CommonService } from 'src/common/common.service';
 
 @Injectable()
 export class ProductsService {
   private readonly logger = new Logger('ProductsService');
-
+  private readonly commonService: CommonService<Product>;
   constructor(
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
@@ -31,7 +32,9 @@ export class ProductsService {
     private readonly dataSource: DataSource,
 
     private readonly filesService: FilesService,
-  ) {}
+  ) {
+    this.commonService = new CommonService(productRepository);
+  }
 
   async create(createProductDto: CreateProductDto, user: User) {
     try {
@@ -61,19 +64,18 @@ export class ProductsService {
     }
   }
 
-  async findAll(paginationDto: PaginationDto) {
-    const { limit = 10, offset = 0 } = paginationDto;
+  async findAll(paginationDto: PaginationDto<Product>) {
+    const { items: products, ...paginate } = await this.commonService.findAll(
+      paginationDto,
+    );
 
-    const products = await this.productRepository.find({
-      take: limit,
-      skip: offset,
-      relations: ['images'],
-    });
-
-    return products.map((product) => ({
-      ...product,
-      images: product.images.map((img) => img.url),
-    }));
+    return {
+      ...paginate,
+      products: products.map((product) => ({
+        ...product,
+        images: product.images.map((image) => image.url),
+      })),
+    };
   }
 
   async findOne(term: string) {
